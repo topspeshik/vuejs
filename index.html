@@ -1,0 +1,241 @@
+
+<!DOCTYPE html>
+<html>
+<head>
+	<meta charset="utf-8">
+	<meta name="viewport" content="width=device-width, initial-scale=1">
+	<title>Управление заметками</title>
+	<link href="css.css" rel="stylesheet" type="text/css">
+	<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bulma@0.9.4/css/bulma.min.css">
+</head>
+<body>
+
+	<div id="app" v-cloak> 
+		<div class="toolbar container">
+			<a href=""
+				class="button is-primary is-medium" 
+				v-on:click.prevent="showList()"
+				v-bind:class="{active: screen === 'list'}"
+				>Задачи</a>
+			<a href="" 
+				class="button is-primary is-medium" 
+				v-on:click.prevent="showForm($event)"
+				v-bind:class="{active: screen === 'form'}"
+				v-if="mode === 'creating'"
+				>Добавить задачу</a>
+			<a href="" 
+				class="button is-primary is-medium" 
+				v-on:click.prevent="editItem(task)"
+				v-bind:class="{active: screen === 'form'}"
+				v-if="mode === 'editing'"
+				>Изменить задачу</a>
+		</div>
+
+		<div class="container box" v-if="screen === 'form'">
+			
+			<form>
+				<input class="item input is-success is-normal is-rounded" type="text" placeholder="Название" v-model="task.name">
+				<br>
+
+				<input class="item input is-success is-normal is-rounded" type="text" placeholder="Описание" v-model="task.description">
+				<span v-if="errors.description" class="notification is-danger is-light"> {{errors.description}} </span>
+				<br>
+
+				<span class="itemtag tag is-primary is-medium is-rounded is-light">Тип</span>
+				<br>
+				<div class="item select is-success is-normal is-rounded"><select v-model="task.type" placeholder="xt">
+					<option v-for="(label, key) in types" v-bind:value="key"> {{label}} </option>
+				</select>
+				</div>
+				<br>
+				<span class="itemtag tag is-primary is-medium is-rounded is-light">Приоритет</span>
+				<input class="item" type="checkbox" v-model="task.prio"> {{ task.prio | prio }}
+				<br>
+				<br>
+				<button type="button" class="button is-success is-rounded" v-on:click="addItem()" v-if="mode === 'creating'">Добавить</button>
+				<button type="button" class="button is-success is-rounded" v-on:click="saveItem()" v-if="mode === 'editing'">Сохранить</button>
+				<br>
+				<br>
+				<br>
+			</form>
+			<span v-if="errors.name" class="notification is-danger is-light"></button> {{errors.name}}</span>
+			<br>
+
+		</div>
+
+		<div class="container" v-if="screen === 'list'">
+			<table class="table is-striped is-fullwidth">
+				<thead>
+					<tr>
+						<th>Номер</th>
+						<th>Выполнено</th>
+						<th>Приоритет</th>
+						<th>Название</th>
+						<th>Тип</th>
+						<th>Описание</th>
+						<th>Действия</th>
+					</tr>
+				</thead>
+				<tbody>
+					<tr v-for="(item, index) in items">
+						<td> {{ index + 1 }} </td>
+						<td>
+							<span class="done" v-on:click="makeDone(item)">{{ item.done ? '✅' : '⬜'}}</span>
+						</td>
+						<td> {{ item.prio | prio }} </td>
+						<td> {{ item.name }} </td>
+						<td>
+							<span v-for="(name, type) in types" v-text="name" v-if="item.type === type"></span>
+						</td>
+						<td> {{item.description}}</td>
+						<td>
+							<button class="button is-info is-light" v-on:click="editItem(item)">
+								<span class="icon is-small">
+									<i class="fas fa-edit"></i>
+							    </span>
+							    <span>Изменить</span>
+							</button>
+
+							<button class="button is-danger is-outlined is-light" v-on:click="delItem(index)">
+								<span>Удалить</span>
+							    <span class="icon is-small">
+							    	<i class="fas fa-times"></i>
+							    </span>
+							</button>
+						</td>
+					</tr>
+					
+				</tbody>
+			</table>
+			<div v-else>
+				<em> no items!</em>
+			</div>
+		</div>
+	</div>
+
+
+	<script src="https://cdn.jsdelivr.net/npm/vue@2/dist/vue.js"></script>
+
+	<script>
+		
+		new Vue({
+			el: "#app",
+			data: {
+				types: {
+					call: 'Звонок',
+					meeting: 'Встреча',
+					task: 'Задание'
+				},
+				screen: 'list',
+				mode: 'creating',
+				editingItem: {},
+				errors: {},
+				task: {
+					name:'',
+					description:'',
+					type: '',
+					prio: false,
+					done: false,
+				},
+				items: [
+					{
+						name: 'Заметка 1',
+						description: 'Описание',
+						type: "",
+						prio: true,
+						done: false,
+					},
+					{
+						name: 'Заметка 2',
+						description: 'Описание',
+						type: "",
+						prio: false,
+						done: false,
+					}
+				]
+			},
+			filters: {
+				prio: function(value)
+				{
+					return value ? '🚩' : '';
+				}
+			},
+			watch: {
+				screen: function() {
+					console.log(this.screen);
+				}
+			},
+			methods: {
+				showForm: function(e) {
+					this.screen = 'form';
+					this.mode = 'creating';
+					this.task = {
+							name: '',
+							description: '',
+							type: '',
+							prio: false,
+							done: false,
+						};
+				},
+				showList: function(e) {
+					this.screen = 'list';
+					this.mode = 'creating';
+				},
+				updateList: function() {
+					if (this.task.name){
+						Object.assign(this.editingItem, this.task);
+						this.editingItem = {};
+						this.showList();
+					}
+				},
+				addItem: function() {
+					this.errors =  {};
+					if (!this.task.name)
+					{
+						this.errors.name = "Название задачи обязательно к заполнению";
+						return
+					}
+					this.items.push(this.task);
+					this.task = {
+						name: '',
+						description: '',
+						type: '',
+						prio: false,
+						done: false,
+					};
+					this.showList();
+					
+				},
+				saveItem: function() {
+					this.errors = {};
+					if (!this.task.name)
+					{
+						this.errors.name = "Обязательно к заполнению";
+						return
+					}
+					Object.assign(this.editingItem, this.task);
+					this.editingItem = {};
+					this.showList();
+					
+				},
+				makeDone: function(item) {
+					item.done = !item.done;
+				},
+				editItem: function(item) {
+					this.showForm();
+					this.editingItem = item;
+					this.task = Object.assign({}, item);
+					this.mode = 'editing';
+					
+				},
+				delItem: function(index) {
+					this.items.splice(index, 1);
+				}
+			}
+
+		});
+			
+	</script>
+</body>
+<footer class="footer">
+</html>
